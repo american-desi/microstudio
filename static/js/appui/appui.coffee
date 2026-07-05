@@ -2,6 +2,7 @@ class AppUI
   constructor:(@app)->
     @sections = [
       "code"
+      "ai"
       "sprites"
       "maps"
       "assets"

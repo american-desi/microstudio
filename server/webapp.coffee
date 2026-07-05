@@ -121,6 +121,7 @@ class @WebApp
           run_domain: run_domain
           default_project_language: @server.config.default_project_language
           tutorials_root_url: @server.config.tutorials_root_url
+          ai_enabled: @server.ai_assistant? and @server.ai_assistant.enabled()
 
         return res.send page
       else if not @home_page[lang]? or not @server.use_cache
@@ -147,6 +148,7 @@ class @WebApp
           run_domain: run_domain
           default_project_language: @server.config.default_project_language
           tutorials_root_url: @server.config.tutorials_root_url
+          ai_enabled: @server.ai_assistant? and @server.ai_assistant.enabled()
 
       res.send @home_page[lang]
 

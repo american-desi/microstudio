@@ -38,6 +38,7 @@ class App
     @lib_manager = new LibManager @
     @sync = new Sync @
     @publish = new Publish @
+    @ai_assist = new AIAssist @
     @user_settings = new UserSettings @
     @connected = false
     @tutorial = new TutorialWindow @
@@ -230,6 +231,7 @@ class App
     @tab_manager.projectOpened()
     @lib_manager.projectOpened()
     @sync.projectOpened()
+    @ai_assist.projectOpened()
     @publish.loadProject(@project)
     @project.load()
     if not @tutorial.shown

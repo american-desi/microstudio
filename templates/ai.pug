@@ -1,0 +1,11 @@
+div#ai-panel
+  div#ai-panel-header
+    h1 #{translator.get("Create with AI")}
+    div.betapill BETA
+    div#ai-reset.button1(title=translator.get("Start a new conversation")) <i class="fa fa-trash"></i> #{translator.get("Reset")}
+  p#ai-panel-intro #{translator.get("Describe the game you want to make, or ask for changes to your code. The assistant knows the file currently open in your code editor.")}
+  div#ai-messages
+  div#ai-status
+  div#ai-input-bar
+    textarea#ai-input(rows="3" placeholder=translator.get("Example: make a game where I catch falling apples with a basket"))
+    div#ai-send.button1 <i class="fa fa-paper-plane"></i> #{translator.get("Send")}

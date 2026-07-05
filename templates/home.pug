@@ -86,6 +86,10 @@ html(lang=language)
       script.
         window.ms_tutorials_root_url = "!{tutorials_root_url}" ;
 
+    if ai_enabled
+      script.
+        window.ms_ai_enabled = true ;
+
     each js in javascript_files
       script(src=js)
 
@@ -385,6 +389,8 @@ html(lang=language)
           div.sidemenu#sidemenu
             ul
               li(id="menuitem-code") <i class="fa fa-code"></i><br /> #{translator.get("Code")}
+              if ai_enabled
+                li(id="menuitem-ai") <i class="fas fa-robot"></i><br /> #{translator.get("AI")}
               li(id="menuitem-sprites") <i class="fa fa-image"></i><br /> #{translator.get("Sprites")}
               li(id="menuitem-maps") <i class="fa fa-map"></i><br /> #{translator.get("Maps")}
               li(id="menuitem-assets") <i class="fa fa-cube"></i><br /> #{translator.get("Assets")}
@@ -400,6 +406,9 @@ html(lang=language)
           div.section-container#section-container
             div.section#code-section
               include code.pug
+
+            div.section#ai-section
+              include ai.pug
 
             div.section#explore-section
 

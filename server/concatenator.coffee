@@ -199,6 +199,7 @@ class @Concatenator
       "/css/explore.css"
       "/css/options.css"
       "/css/sync.css"
+      "/css/ai.css"
       "/css/user.css"
       "/css/media.css"
       "/css/terminal.css"
@@ -246,6 +247,8 @@ class @Concatenator
       "/js/options/pluginview.js"
 
       "/js/sync/sync.js"
+
+      "/js/ai/ai.js"
 
       "/js/publish/publish.js"
       "/js/publish/appbuild.js"

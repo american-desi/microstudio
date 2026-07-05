@@ -10,6 +10,7 @@ WebApp = require __dirname+"/webapp.js"
 Session = require __dirname+"/session/session.js"
 RateLimiter = require __dirname+"/ratelimiter.js"
 BuildManager = require __dirname+"/build/buildmanager.js"
+AIAssistant = require __dirname+"/ai/assistant.js"
 WebSocket = require "ws"
 process = require "process"
 morgan = require "morgan"
@@ -182,6 +183,7 @@ class @Server
 
     @content = new Content @,db,new FileStorage "#{@app_data}/files"
     @build_manager = new BuildManager @
+    @ai_assistant = new AIAssistant @
     @webapp = new WebApp @,app
 
     for l in @webapp.languages

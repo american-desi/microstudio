@@ -4,6 +4,7 @@
   "description": "Web server",
   "main": "server.js",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.110.0",
     "@fontsource/source-sans-pro": "^4.4.5",
     "@fontsource/ubuntu": "^4.4.5",
     "@fontsource/ubuntu-mono": "^4.4.5",

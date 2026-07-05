@@ -112,6 +112,8 @@ class @Session
 
     @register "tutorial_completed",(msg)=>@tutorialCompleted(msg)
 
+    @register "ai_assist",(msg)=>@aiAssist(msg)
+
     # moderation
     @register "set_project_approved",(msg)=>@setProjectApproved msg
     @register "set_user_approved",(msg)=>@setUserApproved msg
@@ -1468,6 +1470,17 @@ class @Session
     return if not msg.id.startsWith("tutorials/")
     @user.progress.unlockAchievement(msg.id)
     @checkUpdates()
+
+  aiAssist:(data)->
+    return @sendError("not connected",data.request_id) if not @user?
+    @server.ai_assistant.assist @user,data,(result)=>
+      if result.error?
+        @sendError result.error,data.request_id
+      else
+        @send
+          name: "ai_assist"
+          text: result.text
+          request_id: data.request_id
 
   checkUpdates:()->
     if @user?
