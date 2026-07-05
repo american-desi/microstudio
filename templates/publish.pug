@@ -46,6 +46,15 @@ div.publish-box#publish-box-online
   div#publish-tag-list
   div(style="clear: both") &nbsp;
 
+  div#publish-verified-section(style="display:none")
+    h3 #{translator.get("Verified status")}
+    p.tip #{translator.get("Verified games earn a creator badge, can be featured in Explore and count toward your creator rank. Publishing never requires verification — it is an extra level you can apply for. To become verified you will show you understand how your game works: a quick, private check you can retry any time. A teacher or moderator can also verify your game directly.")}
+    div#publish-verified-badge(style="display:none") <i class="fa fa-check-circle"></i> #{translator.get("This game is verified!")}
+    div#publish-verified-pending(style="display:none") <i class="fa fa-hourglass-half"></i> #{translator.get("Verification requested! The comprehension check is in the works; until then a teacher or moderator can verify your game.")}
+    div.publish-button#verified-request-button(style="display:none")
+      i.fa.fa-award
+      | #{translator.get("Apply for Verified status")}
+
 div.publish-box
   div.action-box#html-export
     div.publish-button

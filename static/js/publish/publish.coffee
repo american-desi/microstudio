@@ -6,6 +6,9 @@ class @Publish
     @app.appui.setAction "unpublish-button",()=>
       @setProjectPublic(false)
 
+    @app.appui.setAction "verified-request-button",()=>
+      @requestVerification()
+
     @tags_validator = new InputValidator document.getElementById("publish-add-tags"),
       document.getElementById("publish-add-tags-button"),
       null,
@@ -78,7 +81,27 @@ class @Publish
       build.loadProject(project)
 
     @updateServerExport()
+    @updateVerified()
     return
+
+  updateVerified:()->
+    project = @app.project
+    return if not project?
+    flags = project.flags or {}
+    document.getElementById("publish-verified-section").style.display = if project.public then "block" else "none"
+    document.getElementById("publish-verified-badge").style.display = if flags.verified then "block" else "none"
+    document.getElementById("publish-verified-pending").style.display = if flags.verification_requested and not flags.verified then "block" else "none"
+    document.getElementById("verified-request-button").style.display = if project.public and not flags.verified and not flags.verification_requested then "inline-block" else "none"
+
+  requestVerification:()->
+    return if not @app.project?
+    @app.client.sendRequest {
+      name: "request_project_verification"
+      project: @app.project.id
+    },(msg)=>
+      if msg.name != "error" and @app.project? and msg.id == @app.project.id
+        @app.project.flags = msg.flags
+        @updateVerified()
 
   updateServerExport:()->
     document.querySelector("#publish-box-server").style.display = if @app.project? and @app.project.networking then "block" else "none"

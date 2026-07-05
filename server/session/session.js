@@ -365,6 +365,11 @@ this.Session = (function() {
         return _this.aiAssist(msg);
       };
     })(this));
+    this.register("request_project_verification", (function(_this) {
+      return function(msg) {
+        return _this.requestProjectVerification(msg);
+      };
+    })(this));
     this.register("set_project_approved", (function(_this) {
       return function(msg) {
         return _this.setProjectApproved(msg);
@@ -373,6 +378,11 @@ this.Session = (function() {
     this.register("set_user_approved", (function(_this) {
       return function(msg) {
         return _this.setUserApproved(msg);
+      };
+    })(this));
+    this.register("set_project_verified", (function(_this) {
+      return function(msg) {
+        return _this.setProjectVerified(msg);
       };
     })(this));
     this.register("relay_server_available", (function(_this) {
@@ -1115,6 +1125,55 @@ this.Session = (function() {
           name: "set_project_public",
           id: project.id,
           "public": project["public"],
+          request_id: data.request_id
+        });
+      }
+    }
+  };
+
+  Session.prototype.requestProjectVerification = function(data) {
+    var project;
+    if (this.user == null) {
+      return this.sendError("not connected");
+    }
+    if (data.project == null) {
+      return this.sendError("bad request", data.request_id);
+    }
+    project = this.user.findProject(data.project);
+    if (project == null) {
+      return this.sendError("bad request", data.request_id);
+    }
+    if (!project["public"]) {
+      return this.sendError("project must be public", data.request_id);
+    }
+    if (!project.flags.verified) {
+      project.setFlag("verification_requested", true);
+    }
+    return this.send({
+      name: "request_project_verification",
+      id: project.id,
+      flags: project.flags,
+      request_id: data.request_id
+    });
+  };
+
+  Session.prototype.setProjectVerified = function(data) {
+    var project;
+    if (this.user == null) {
+      return;
+    }
+    if (data.project == null) {
+      return;
+    }
+    if (this.user.flags.admin || this.user.flags.moderator) {
+      project = this.content.projects[data.project];
+      if (project != null) {
+        project.setFlag("verified", data.verified);
+        project.setFlag("verification_requested", false);
+        return this.send({
+          name: "set_project_verified",
+          id: project.id,
+          verified: data.verified,
           request_id: data.request_id
         });
       }

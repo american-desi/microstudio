@@ -114,9 +114,13 @@ class @Session
 
     @register "ai_assist",(msg)=>@aiAssist(msg)
 
+    # verified tier
+    @register "request_project_verification",(msg)=>@requestProjectVerification(msg)
+
     # moderation
     @register "set_project_approved",(msg)=>@setProjectApproved msg
     @register "set_user_approved",(msg)=>@setUserApproved msg
+    @register "set_project_verified",(msg)=>@setProjectVerified msg
 
     # client / server
     @register "relay_server_available",(msg) => @relayServerAvailable msg
@@ -657,6 +661,38 @@ class @Session
           name:"set_project_public"
           id: project.id
           public: project.public
+          request_id: data.request_id
+
+  requestProjectVerification:(data)->
+    return @sendError("not connected") if not @user?
+    return @sendError("bad request",data.request_id) if not data.project?
+
+    project = @user.findProject(data.project)
+    return @sendError("bad request",data.request_id) if not project?
+    return @sendError("project must be public",data.request_id) if not project.public
+
+    if not project.flags.verified
+      project.setFlag "verification_requested",true
+
+    @send
+      name: "request_project_verification"
+      id: project.id
+      flags: project.flags
+      request_id: data.request_id
+
+  setProjectVerified:(data)->
+    return if not @user?
+    return if not data.project?
+
+    if @user.flags.admin or @user.flags.moderator
+      project = @content.projects[data.project]
+      if project?
+        project.setFlag "verified",data.verified
+        project.setFlag "verification_requested",false
+        @send
+          name: "set_project_verified"
+          id: project.id
+          verified: data.verified
           request_id: data.request_id
 
   setProjectApproved:(data)->
