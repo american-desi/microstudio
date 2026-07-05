@@ -12,4 +12,5 @@ microstudio.wiki/
 ignore/
 logs/
 server/blocked_ips.txt
-server/blocked_ips.bak
+server/blocked_ips.bakmicrostudio.wiki/
+config.json
