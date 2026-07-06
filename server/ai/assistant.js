@@ -1,15 +1,37 @@
-var Anthropic, SYSTEM_PROMPT;
+var Anthropic, PROVIDERS, SYSTEM_PROMPT;
 
 SYSTEM_PROMPT = "You are the microStudio AI creation assistant. You help students (often kids and teens) create and improve games inside microStudio, a browser game engine. Be encouraging, concise and clear. Never write anything inappropriate for children.\n\nThe user's project language is LANGUAGE_NAME. When asked to create or modify code, return the COMPLETE updated content of the current source file in a single fenced code block, so it can be applied directly to the editor. Briefly explain what you changed before the code block. Do not use more than one code block per reply.\n\nmicroScript 2.0 quick reference (when the project language is microscript):\n- The engine calls three global functions: init() once at start, update() 30 times/second (game logic), draw() 60 times/second (rendering).\n- No semicolons, blocks end with `end`. Example: `if x > 0 then ... end`, `for i = 1 to 10 ... end`, `while cond ... end`. Functions: `myFunc = function(a, b) ... end`.\n- Variables are global unless declared with `local`. Objects: `player = object x = 0, y = 0 end`. Lists: `list = [1, 2, 3]`, `list.push(4)`.\n- Screen drawing (in draw()): screen.clear(), screen.fillRect(x, y, w, h, color), screen.fillRound(x, y, w, h, color), screen.drawSprite(\"name\", x, y, w, h), screen.drawText(text, x, y, size, color), screen.drawMap(\"name\", x, y, w, h), screen.setAlpha(a), colors are strings like \"#FFF\" or \"rgb(255, 0, 0)\".\n- The screen center is x = 0, y = 0; x grows right, y grows UP. Default the shortest screen dimension spans 200 units (-100 to 100).\n- Input: keyboard.UP / DOWN / LEFT / RIGHT / SPACE / A .. Z (value 1 while pressed), keyboard.press.SPACE (1 on the frame pressed), touch.touching, touch.x, touch.y, mouse.x, mouse.y, mouse.pressed.\n- Sounds and music: audio.playSound(\"name\"), audio.playMusic(\"name\"). Sprites, maps, sounds and music are project assets referenced by name.\n- Useful: sprites[\"name\"].width, maps[\"name\"], random.next() (0..1), abs/min/max/floor/round/sqrt/cos/sin (radians via PI), system.time().\n\nGuidance:\n- Prefer small, working, playable steps over big rewrites; keep existing code the user did not ask to change.\n- If the request is ambiguous, make a sensible choice and note it in one sentence.\n- If asked to explain code, explain simply, matched to a young learner.\n- If the user asks for sprites or assets you cannot create, use simple drawn shapes instead and say how to add sprites later.";
 
 Anthropic = require("@anthropic-ai/sdk");
+
+PROVIDERS = {
+  gemini: {
+    base_url: "https://generativelanguage.googleapis.com/v1beta/openai",
+    default_model: "gemini-2.5-flash"
+  },
+  groq: {
+    base_url: "https://api.groq.com/openai/v1",
+    default_model: "llama-3.3-70b-versatile"
+  },
+  openrouter: {
+    base_url: "https://openrouter.ai/api/v1",
+    default_model: "google/gemini-2.5-flash"
+  },
+  anthropic: {
+    default_model: "claude-haiku-4-5"
+  }
+};
 
 this.AIAssistant = (function() {
   function AIAssistant(server) {
     this.server = server;
     this.config = this.server.config || {};
     this.usage = {};
-    if (this.enabled()) {
+    this.provider = this.config.ai_provider || (this.config.ai_base_url != null ? "openai" : "anthropic");
+    this.preset = PROVIDERS[this.provider] || {};
+    this.base_url = this.config.ai_base_url || this.preset.base_url;
+    this.model = this.config.ai_model || this.preset.default_model || "gemini-2.5-flash";
+    if (this.enabled() && this.provider === "anthropic") {
       this.client = new Anthropic({
         apiKey: this.config.ai_api_key
       });
@@ -17,7 +39,10 @@ this.AIAssistant = (function() {
   }
 
   AIAssistant.prototype.enabled = function() {
-    return (this.config.ai_api_key != null) && this.config.ai_api_key.length > 0;
+    if (!((this.config.ai_api_key != null) && this.config.ai_api_key.length > 0)) {
+      return false;
+    }
+    return this.provider === "anthropic" || (this.base_url != null);
   };
 
   AIAssistant.prototype.rateLimited = function(user_id) {
@@ -86,23 +111,31 @@ this.AIAssistant = (function() {
       system += "\n\nCurrent source file: \"" + (("" + context.file).substring(0, 100)) + "\"\nCurrent content of this file:\n```\n" + (("" + context.code).substring(0, 30000)) + "\n```";
     }
     this.recordUse(user.id);
+    if (this.provider === "anthropic") {
+      return this.assistAnthropic(system, messages, callback);
+    } else {
+      return this.assistOpenAICompatible(system, messages, callback);
+    }
+  };
+
+  AIAssistant.prototype.assistAnthropic = function(system, messages, callback) {
     return this.client.messages.create({
-      model: this.config.ai_model || "claude-haiku-4-5",
+      model: this.model,
       max_tokens: this.config.ai_max_tokens || 3000,
       system: system,
       messages: messages
     }).then((function(_this) {
       return function(response) {
-        var block, j, len1, ref1, text;
+        var block, i, len, ref, text;
         if (response.stop_reason === "refusal") {
           return callback({
             error: "ai_request_failed"
           });
         }
         text = "";
-        ref1 = response.content;
-        for (j = 0, len1 = ref1.length; j < len1; j++) {
-          block = ref1[j];
+        ref = response.content;
+        for (i = 0, len = ref.length; i < len; i++) {
+          block = ref[i];
           if (block.type === "text") {
             text += block.text;
           }
@@ -114,6 +147,50 @@ this.AIAssistant = (function() {
     })(this))["catch"]((function(_this) {
       return function(err) {
         console.error("AI assist error: " + err);
+        return callback({
+          error: "ai_request_failed"
+        });
+      };
+    })(this));
+  };
+
+  AIAssistant.prototype.assistOpenAICompatible = function(system, messages, callback) {
+    return fetch((this.base_url.replace(/\/$/, "")) + "/chat/completions", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "authorization": "Bearer " + this.config.ai_api_key
+      },
+      body: JSON.stringify({
+        model: this.model,
+        max_tokens: this.config.ai_max_tokens || 3000,
+        messages: [
+          {
+            role: "system",
+            content: system
+          }
+        ].concat(messages)
+      })
+    }).then((function(_this) {
+      return function(res) {
+        return res.json().then(function(json) {
+          var ref, ref1, ref2, text;
+          text = (ref = json.choices) != null ? (ref1 = ref[0]) != null ? (ref2 = ref1.message) != null ? ref2.content : void 0 : void 0 : void 0;
+          if (res.ok && typeof text === "string" && text.length > 0) {
+            return callback({
+              text: text
+            });
+          } else {
+            console.error("AI assist error (" + _this.provider + "): " + (JSON.stringify(json.error || json).substring(0, 500)));
+            return callback({
+              error: "ai_request_failed"
+            });
+          }
+        });
+      };
+    })(this))["catch"]((function(_this) {
+      return function(err) {
+        console.error("AI assist error (" + _this.provider + "): " + err);
         return callback({
           error: "ai_request_failed"
         });

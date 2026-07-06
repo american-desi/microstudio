@@ -20,15 +20,35 @@ Guidance:
 
 Anthropic = require "@anthropic-ai/sdk"
 
+# Known OpenAI-compatible providers, selectable via config "ai_provider".
+# All of these offer a free tier as of mid-2026 (see docs/AI_SETUP.md).
+PROVIDERS =
+  gemini:
+    base_url: "https://generativelanguage.googleapis.com/v1beta/openai"
+    default_model: "gemini-2.5-flash"
+  groq:
+    base_url: "https://api.groq.com/openai/v1"
+    default_model: "llama-3.3-70b-versatile"
+  openrouter:
+    base_url: "https://openrouter.ai/api/v1"
+    default_model: "google/gemini-2.5-flash"
+  anthropic:
+    default_model: "claude-haiku-4-5"
+
 class @AIAssistant
   constructor:(@server)->
     @config = @server.config or {}
     @usage = {}
-    if @enabled()
+    @provider = @config.ai_provider or (if @config.ai_base_url? then "openai" else "anthropic")
+    @preset = PROVIDERS[@provider] or {}
+    @base_url = @config.ai_base_url or @preset.base_url
+    @model = @config.ai_model or @preset.default_model or "gemini-2.5-flash"
+    if @enabled() and @provider == "anthropic"
       @client = new Anthropic { apiKey: @config.ai_api_key }
 
   enabled:()->
-    @config.ai_api_key? and @config.ai_api_key.length > 0
+    return false if not (@config.ai_api_key? and @config.ai_api_key.length > 0)
+    @provider == "anthropic" or @base_url?
 
   # sliding one-hour window, per user
   rateLimited:(user_id)->
@@ -68,8 +88,14 @@ class @AIAssistant
 
     @recordUse user.id
 
+    if @provider == "anthropic"
+      @assistAnthropic system,messages,callback
+    else
+      @assistOpenAICompatible system,messages,callback
+
+  assistAnthropic:(system,messages,callback)->
     @client.messages.create
-      model: @config.ai_model or "claude-haiku-4-5"
+      model: @model
       max_tokens: @config.ai_max_tokens or 3000
       system: system
       messages: messages
@@ -82,6 +108,29 @@ class @AIAssistant
       callback { text: text }
     .catch (err)=>
       console.error "AI assist error: #{err}"
+      callback { error: "ai_request_failed" }
+
+  # Gemini, Groq, OpenRouter and any other /chat/completions endpoint
+  assistOpenAICompatible:(system,messages,callback)->
+    fetch "#{@base_url.replace(/\/$/,"")}/chat/completions",
+      method: "POST"
+      headers:
+        "content-type": "application/json"
+        "authorization": "Bearer #{@config.ai_api_key}"
+      body: JSON.stringify
+        model: @model
+        max_tokens: @config.ai_max_tokens or 3000
+        messages: [{ role: "system", content: system }].concat(messages)
+    .then (res)=>
+      res.json().then (json)=>
+        text = json.choices?[0]?.message?.content
+        if res.ok and typeof text == "string" and text.length > 0
+          callback { text: text }
+        else
+          console.error "AI assist error (#{@provider}): #{JSON.stringify(json.error or json).substring(0,500)}"
+          callback { error: "ai_request_failed" }
+    .catch (err)=>
+      console.error "AI assist error (#{@provider}): #{err}"
       callback { error: "ai_request_failed" }
 
 module.exports = @AIAssistant
