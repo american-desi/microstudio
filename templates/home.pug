@@ -121,6 +121,8 @@ html(lang=language)
         li#menu-explore.selected(title=translator.get("Explore")) <i class="fa fa-search"></i><br /><span>#{translator.get("Explore")}</span>
         li#menu-projects(title=translator.get("Create")) <i class="fa fa-code"></i><br /><span>#{translator.get("Create")}</span>
         //- li#menu-play(title=translator.get("Play")) <i class="fa fa-gamepad"></i><br /><span>#{translator.get("Play")}</span>
+        a(href="/leaderboard" target="_blank")
+          li#menu-leaderboard(title=translator.get("Leaderboard")) <i class="fa fa-trophy"></i><br /><span>#{translator.get("Leaderboard")}</span>
         li#menu-tutorials(title=translator.get("Tutorials")) <i class="fa fa-lightbulb"></i><br /><span>#{translator.get("Tutorials")}</span>
         li#menu-help(title=translator.get("Documentation")) <i class="fa fa-book-open"></i><br /><span>#{translator.get("Documentation")}</span>
         a(target="_blank" href=language == "fr" ? "/fr/community/" : "/community/")

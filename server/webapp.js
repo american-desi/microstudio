@@ -178,6 +178,29 @@ this.WebApp = (function() {
         return res.redirect("https://discord.gg/nEMpBU7");
       };
     })(this));
+    this.app.get(/^\/leaderboard\/?$/, (function(_this) {
+      return function(req, res) {
+        var len3, o, p, projects, ref4;
+        if ((_this.leaderboard_funk == null) || !_this.server.use_cache) {
+          _this.leaderboard_funk = pug.compileFile("../templates/leaderboard.pug");
+        }
+        projects = [];
+        ref4 = _this.server.content.top_projects;
+        for (o = 0, len3 = ref4.length; o < len3; o++) {
+          p = ref4[o];
+          if (!p["public"] || p.deleted || p.unlisted || p.owner.flags.censored) {
+            continue;
+          }
+          projects.push(p);
+          if (projects.length >= 50) {
+            break;
+          }
+        }
+        return res.send(_this.leaderboard_funk({
+          projects: projects
+        }));
+      };
+    })(this));
     this.app.get(/^\/v\/\d+\/[a-z0-9A-Z]+\/?$/, (function(_this) {
       return function(req, res, next) {
         var redir, s, token, user, userid;

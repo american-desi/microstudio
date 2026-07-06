@@ -1,0 +1,30 @@
+doctype html
+html(lang="en")
+  head
+    meta(charset="utf-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1")
+    meta(name="description" content="The most popular projects built by the community, ranked.")
+    title Leaderboard - microStudio
+    link(rel="icon" type="image/png" href="/img/microstudiologo.svg")
+    link(rel="stylesheet" href="/css/leaderboard.css")
+  body
+    div.leaderboard-wrap
+      header.leaderboard-header
+        a.back(href="/") &larr; microStudio
+        h1 🏆 Leaderboard
+        p.subtitle The most popular projects built by the community, ranked by likes. Build something, publish it, climb the board.
+      ol.leaderboard
+        each project, index in projects
+          li.entry(class=index < 3 ? "podium" : "")
+            span.rank ##{index + 1}
+            img.icon(src="/" + project.owner.nick + "/" + project.slug + "/icon64.png" alt="" loading="lazy" onerror="this.style.visibility='hidden'")
+            div.meta
+              a.title(href="/" + project.owner.nick + "/" + project.slug + "/") #{project.title}
+              span.owner by #{project.owner.nick}
+            span.likes
+              | #{project.likes}
+              i ♥
+      if projects.length == 0
+        p.empty No public projects yet — be the first on the board!
+      footer.leaderboard-footer
+        p Want your project here? Create it, make it public, and share it with the world.

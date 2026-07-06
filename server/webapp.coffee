@@ -159,6 +159,17 @@ class @WebApp
     @app.get /^\/discord\/?$/, (req,res)=>
       res.redirect "https://discord.gg/nEMpBU7"
 
+    @app.get /^\/leaderboard\/?$/, (req,res)=>
+      if not @leaderboard_funk? or not @server.use_cache
+        @leaderboard_funk = pug.compileFile "../templates/leaderboard.pug"
+      projects = []
+      for p in @server.content.top_projects
+        continue if not p.public or p.deleted or p.unlisted or p.owner.flags.censored
+        projects.push p
+        break if projects.length >= 50
+      res.send @leaderboard_funk
+        projects: projects
+
     # email validation
     @app.get /^\/v\/\d+\/[a-z0-9A-Z]+\/?$/,(req,res,next)=>
       #console.info "matched email validation"
