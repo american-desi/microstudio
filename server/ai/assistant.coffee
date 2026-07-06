@@ -62,6 +62,22 @@ class @AIAssistant
   recordUse:(user_id)->
     @usage[user_id].push Date.now()
 
+  # Adapt teaching style to the user's platform level (gamify system):
+  # meet them where they are, stretch them one step beyond.
+  skillGuidance:(user)->
+    level = user.progress?.stats?.level or 0
+    if level <= 2
+      """About this user: they are just getting started (platform level #{level}).
+      Use simple words and short replies. Change one small thing at a time and celebrate every win.
+      Briefly explain each new concept the first time it appears. Never assume prior programming knowledge."""
+    else if level <= 7
+      """About this user: they have some experience (platform level #{level}).
+      Build on what their code shows they already know. Introduce one new technique or concept per reply, name it explicitly, and say why it helps — stretch their abilities one step at a time."""
+    else
+      """About this user: they are an experienced creator (platform level #{level}).
+      Be concise and idiomatic. Point out refactors, performance wins and advanced techniques.
+      Challenge them with a stretch suggestion when it fits, and treat them as a peer."""
+
   languageName:(language)->
     switch language
       when "python" then "Python (Brython)"
@@ -83,6 +99,7 @@ class @AIAssistant
 
     context = data.context or {}
     system = SYSTEM_PROMPT.replace "LANGUAGE_NAME",@languageName(context.language)
+    system += "\n\n" + @skillGuidance(user)
     if context.file? and context.code?
       system += "\n\nCurrent source file: \"#{("#{context.file}").substring(0,100)}\"\nCurrent content of this file:\n```\n#{("#{context.code}").substring(0,30000)}\n```"
 

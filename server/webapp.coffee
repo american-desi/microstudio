@@ -170,6 +170,13 @@ class @WebApp
       res.send @leaderboard_funk
         projects: projects
 
+    @app.get /^\/news\/?$/, (req,res)=>
+      if not @news_funk? or not @server.use_cache
+        @news_funk = pug.compileFile "../templates/news.pug"
+      @getHackerNews (stories)=>
+        res.send @news_funk
+          stories: stories
+
     # email validation
     @app.get /^\/v\/\d+\/[a-z0-9A-Z]+\/?$/,(req,res,next)=>
       #console.info "matched email validation"
@@ -645,6 +652,35 @@ class @WebApp
 
   return429:(req,res)->
     res.status(429).send "Too many requests"
+
+  # top stories from the official Hacker News API, cached for 10 minutes
+  getHackerNews:(callback)->
+    if @hn_cache? and Date.now() - @hn_cache_time < 10*60*1000
+      return callback @hn_cache
+
+    fetch "https://hacker-news.firebaseio.com/v0/topstories.json"
+    .then (r)-> r.json()
+    .then (ids)->
+      Promise.all ids.slice(0,30).map (id)->
+        fetch("https://hacker-news.firebaseio.com/v0/item/#{id}.json")
+          .then (r)-> r.json()
+          .catch -> null
+    .then (items)=>
+      stories = []
+      for it in items when it? and it.type == "story" and not it.dead and not it.deleted
+        stories.push
+          id: it.id
+          title: it.title
+          url: it.url or "https://news.ycombinator.com/item?id=#{it.id}"
+          score: it.score or 0
+          by: it.by
+          comments: it.descendants or 0
+      @hn_cache = stories
+      @hn_cache_time = Date.now()
+      callback stories
+    .catch (err)=>
+      console.error "HN fetch error: #{err}"
+      callback(@hn_cache or [])
 
   ensureDevArea:(req,res)->
     #console.info req.get("host")

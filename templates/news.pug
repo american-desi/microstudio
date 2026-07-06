@@ -1,0 +1,26 @@
+doctype html
+html(lang="en")
+  head
+    meta(charset="utf-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1")
+    meta(name="description" content="Top stories from Hacker News for builders and founders.")
+    title Builder News - microStudio
+    link(rel="icon" type="image/png" href="/img/microstudiologo.svg")
+    link(rel="stylesheet" href="/css/leaderboard.css")
+  body
+    div.leaderboard-wrap
+      header.leaderboard-header
+        a.back(href="/") &larr; microStudio
+        h1 📰 Builder News
+        p.subtitle What founders and hackers are talking about right now — top stories live from #[a(href="https://news.ycombinator.com" style="color:hsl(24,100%,60%)") Hacker News].
+      ol.leaderboard
+        each story, index in stories
+          li.entry
+            span.rank ##{index + 1}
+            div.meta
+              a.title(href=story.url target="_blank" rel="noopener") #{story.title}
+              span.owner #{story.score} points by #{story.by} · #[a(href="https://news.ycombinator.com/item?id=" + story.id target="_blank" rel="noopener" style="color:inherit") #{story.comments} comments]
+      if stories.length == 0
+        p.empty News is taking a nap — try again in a minute.
+      footer.leaderboard-footer
+        p Source: the official Hacker News API. Refreshes every 10 minutes.

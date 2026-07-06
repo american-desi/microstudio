@@ -201,6 +201,18 @@ this.WebApp = (function() {
         }));
       };
     })(this));
+    this.app.get(/^\/news\/?$/, (function(_this) {
+      return function(req, res) {
+        if ((_this.news_funk == null) || !_this.server.use_cache) {
+          _this.news_funk = pug.compileFile("../templates/news.pug");
+        }
+        return _this.getHackerNews(function(stories) {
+          return res.send(_this.news_funk({
+            stories: stories
+          }));
+        });
+      };
+    })(this));
     this.app.get(/^\/v\/\d+\/[a-z0-9A-Z]+\/?$/, (function(_this) {
       return function(req, res, next) {
         var redir, s, token, user, userid;
@@ -779,6 +791,49 @@ this.WebApp = (function() {
 
   WebApp.prototype.return429 = function(req, res) {
     return res.status(429).send("Too many requests");
+  };
+
+  WebApp.prototype.getHackerNews = function(callback) {
+    if ((this.hn_cache != null) && Date.now() - this.hn_cache_time < 10 * 60 * 1000) {
+      return callback(this.hn_cache);
+    }
+    return fetch("https://hacker-news.firebaseio.com/v0/topstories.json").then(function(r) {
+      return r.json();
+    }).then(function(ids) {
+      return Promise.all(ids.slice(0, 30).map(function(id) {
+        return fetch("https://hacker-news.firebaseio.com/v0/item/" + id + ".json").then(function(r) {
+          return r.json();
+        })["catch"](function() {
+          return null;
+        });
+      }));
+    }).then((function(_this) {
+      return function(items) {
+        var it, j, len, stories;
+        stories = [];
+        for (j = 0, len = items.length; j < len; j++) {
+          it = items[j];
+          if ((it != null) && it.type === "story" && !it.dead && !it.deleted) {
+            stories.push({
+              id: it.id,
+              title: it.title,
+              url: it.url || ("https://news.ycombinator.com/item?id=" + it.id),
+              score: it.score || 0,
+              by: it.by,
+              comments: it.descendants || 0
+            });
+          }
+        }
+        _this.hn_cache = stories;
+        _this.hn_cache_time = Date.now();
+        return callback(stories);
+      };
+    })(this))["catch"]((function(_this) {
+      return function(err) {
+        console.error("HN fetch error: " + err);
+        return callback(_this.hn_cache || []);
+      };
+    })(this));
   };
 
   WebApp.prototype.ensureDevArea = function(req, res) {

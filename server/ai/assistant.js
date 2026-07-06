@@ -61,6 +61,18 @@ this.AIAssistant = (function() {
     return this.usage[user_id].push(Date.now());
   };
 
+  AIAssistant.prototype.skillGuidance = function(user) {
+    var level, ref, ref1;
+    level = ((ref = user.progress) != null ? (ref1 = ref.stats) != null ? ref1.level : void 0 : void 0) || 0;
+    if (level <= 2) {
+      return "About this user: they are just getting started (platform level " + level + ").\nUse simple words and short replies. Change one small thing at a time and celebrate every win.\nBriefly explain each new concept the first time it appears. Never assume prior programming knowledge.";
+    } else if (level <= 7) {
+      return "About this user: they have some experience (platform level " + level + ").\nBuild on what their code shows they already know. Introduce one new technique or concept per reply, name it explicitly, and say why it helps — stretch their abilities one step at a time.";
+    } else {
+      return "About this user: they are an experienced creator (platform level " + level + ").\nBe concise and idiomatic. Point out refactors, performance wins and advanced techniques.\nChallenge them with a stretch suggestion when it fits, and treat them as a peer.";
+    }
+  };
+
   AIAssistant.prototype.languageName = function(language) {
     switch (language) {
       case "python":
@@ -107,6 +119,7 @@ this.AIAssistant = (function() {
     }
     context = data.context || {};
     system = SYSTEM_PROMPT.replace("LANGUAGE_NAME", this.languageName(context.language));
+    system += "\n\n" + this.skillGuidance(user);
     if ((context.file != null) && (context.code != null)) {
       system += "\n\nCurrent source file: \"" + (("" + context.file).substring(0, 100)) + "\"\nCurrent content of this file:\n```\n" + (("" + context.code).substring(0, 30000)) + "\n```";
     }
